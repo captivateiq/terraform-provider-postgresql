@@ -12,14 +12,14 @@ jobs:
 
     strategy:
       matrix:
-        pgversion: [15, 14, 13, 12, 11]
+        pgversion: [15, 13]
 
     env:
       PGVERSION: ${{ matrix.pgversion }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v4
