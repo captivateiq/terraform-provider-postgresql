@@ -79,3 +79,13 @@ TF_LOG=INFO go test -v ./postgresql -run ^TestAccPostgresqlRole_Basic$
 # cleans the env and tears down the postgres container
 make testacc_cleanup
 ```
+
+Docs Generation
+----------------------
+
+- Download https://github.com/hashicorp/terraform-plugin-docs
+- Add the binary to your path
+- Then run in the shell:
+```
+make docs
+```
