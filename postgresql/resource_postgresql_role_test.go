@@ -168,7 +168,7 @@ resource "postgresql_role" "update_role" {
 					resource.TestCheckResourceAttr("postgresql_role.update_role", "search_path.#", "1"),
 					resource.TestCheckResourceAttr("postgresql_role.update_role", "search_path.0", "mysearchpath"),
 					resource.TestCheckResourceAttr("postgresql_role.update_role", "statement_timeout", "30000"),
-					resource.TestCheckResourceAttr("postgresql_role.update_role", "statement_timeout", "10000"),
+					resource.TestCheckResourceAttr("postgresql_role.update_role", "lock_timeout", "10000"),
 					resource.TestCheckResourceAttr("postgresql_role.update_role", "idle_in_transaction_session_timeout", "60000"),
 					resource.TestCheckResourceAttr("postgresql_role.update_role", "assume_role", "group_role"),
 					testAccCheckRoleCanLogin(t, "update_role2", "titi"),
