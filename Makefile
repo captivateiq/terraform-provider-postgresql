@@ -7,6 +7,9 @@ default: build
 build: fmtcheck
 	go install
 
+docs:
+	tfplugindocs generate
+
 test: fmtcheck
 	go test $(TEST) || exit 1
 	echo $(TEST) | \
@@ -36,5 +39,4 @@ fmt:
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
-.PHONY: build test testacc vet fmt fmtcheck
-
+.PHONY: build test testacc vet fmt fmtcheck docs
