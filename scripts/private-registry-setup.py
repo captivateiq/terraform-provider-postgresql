@@ -12,7 +12,7 @@ TOKEN = os.environ["TOKEN"]
 ARMORED_PUBLIC_KEY = os.environ["GPG_PUBLIC_KEY"]
 VERSION = os.environ["VERSION"].lstrip("v")
 
-DIST_FILES = "./dist"
+DIST_FILES = "dist"
 ORG_NAME = "captivateiq"
 PROVIDER_NAME = "postgresql"
 TIMEOUT = 30
@@ -158,7 +158,7 @@ def upload_sha_sums(provider_details):
 
     if not provider_details["attributes"]["shasums-uploaded"]:
         r = requests.post(
-            files={'file': open(f".{DIST_FILES}/{shasum_file}", "r")},
+            files={'file': open(f"{DIST_FILES}/{shasum_file}", "r")},
             url=links["shasums-upload"],
             timeout=TIMEOUT
         )
