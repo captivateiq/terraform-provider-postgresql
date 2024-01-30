@@ -40,3 +40,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+
+      - name: Release to Terraform Cloud Private Registry
+        run: pip3 install requests && python3 scripts/private-registry-setup.py
+        env:
+          GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
+          TOKEN: ${{ secrets.TOKEN }}
+          VERSION: ${{ github.ref_name }}
