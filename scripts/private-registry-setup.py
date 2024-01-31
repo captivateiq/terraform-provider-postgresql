@@ -171,11 +171,11 @@ def upload_sha_sums(provider_details):
     if not provider_details["attributes"]["shasums-uploaded"]:
         print("Sha sum not uploaded. Uploading...")
         r = requests.put(
-            files={'file': open(f"{DIST_FILES}/{shasum_file}", "r")},
+            data=open(f"{DIST_FILES}/{shasum_file}", "rt").read(),
             url=links["shasums-upload"],
             timeout=TIMEOUT
         )
-        if r.status_code != 201:
+        if r.status_code >= 400:
             print("Something bad happened")
             print("Status code", r.status_code)
             print("Error", r.text)
@@ -184,11 +184,11 @@ def upload_sha_sums(provider_details):
     if not provider_details["attributes"]["shasums-sig-uploaded"]:
         print("Sha sum sig not uploaded. Uploading...")
         r = requests.put(
-            files={'file': open(f"{DIST_FILES}/{shasum_sig_file}", "r")},
+            data=open(f"{DIST_FILES}/{shasum_sig_file}", "rb").read(),
             url=links["shasums-sig-upload"],
             timeout=TIMEOUT
         )
-        if r.status_code != 201:
+        if r.status_code >= 400:
             print("Something bad happened")
             print("Status code", r.status_code)
             print("Error", r.text)
@@ -225,11 +225,11 @@ def create_and_upload_platform_files(org_name, provider_name, version):
             links = r.json()["data"]["links"]
             # subprocess.run(["curl", "-T", f"./dist/{file_}", links['provider-binary-upload']])
             r = requests.put(
-                files={'file': open(f"{DIST_FILES}/{file_}", "rb")},
+                data=open(f"{DIST_FILES}/{file_}", "rb").read(),
                 url=links["provider-binary-upload"],
                 timeout=TIMEOUT
             )
-            if r.status_code != 201:
+            if r.status_code >= 400:
                 print("Something bad happened")
                 print("Status code", r.status_code)
                 print("Error", r.text)
