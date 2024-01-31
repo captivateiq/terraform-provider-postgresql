@@ -175,7 +175,7 @@ def upload_sha_sums(provider_details):
             url=links["shasums-upload"],
             timeout=TIMEOUT
         )
-        if r.status_code != 200:
+        if r.status_code >= 400:
             print("Something bad happened")
             print("Status code", r.status_code)
             print("Error", r.text)
@@ -188,7 +188,7 @@ def upload_sha_sums(provider_details):
             url=links["shasums-sig-upload"],
             timeout=TIMEOUT
         )
-        if r.status_code != 200:
+        if r.status_code >= 400:
             print("Something bad happened")
             print("Status code", r.status_code)
             print("Error", r.text)
@@ -229,7 +229,7 @@ def create_and_upload_platform_files(org_name, provider_name, version):
                 url=links["provider-binary-upload"],
                 timeout=TIMEOUT
             )
-            if r.status_code != 200:
+            if r.status_code >= 400:
                 print("Something bad happened")
                 print("Status code", r.status_code)
                 print("Error", r.text)
