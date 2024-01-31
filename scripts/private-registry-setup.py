@@ -23,6 +23,8 @@ HEADERS = {
 
 
 def generate_version_payload(version, key_id):
+    print("Generating version payload")
+    print(f"Version: {version}, key_id: {key_id}")
     return {
         "data": {
             "type": "registry-provider-versions",
@@ -36,12 +38,14 @@ def generate_version_payload(version, key_id):
 
 
 def generate_platform_payload(filename):
+    print("Generating platform payload")
     with open(f"./dist/{filename}", "rb") as f:
         dist_bytes = f.read()
         shasum = hashlib.sha256(dist_bytes).hexdigest()
     re_pat = r"([a-zA-Z-]*)_([0-9A-Za-z.-]*)_(.*)_(.*).zip"
     match = re.match(re_pat, string=filename)
     groups = match.groups() if match else []
+    print(f"filename: {groups[0]}, version: {groups[1]}, os: {groups[2]}, arch: {groups[3]}")
     return {
         "data": {
             "type": "registry-provider-version-platforms",
@@ -56,6 +60,7 @@ def generate_platform_payload(filename):
 
 
 def get_or_create_provider(provider_name, org_name):
+    print("Hadling provider")
     print(f"Org name: {org_name}, provider name: {provider_name}")
     provider_payload = {
         "data": {
@@ -83,6 +88,7 @@ def get_or_create_provider(provider_name, org_name):
         return True
     print("Something bad happened")
     print("Status code", r.status_code)
+    print("Error", r.text)
     return False
 
 
@@ -117,10 +123,12 @@ def get_or_create_gpg_key(org_name, public_key):
         return r.json()["data"]["attributes"]["key-id"]
     print("Something bad happened")
     print("Status code", r.status_code)
+    print("Error", r.text)
     return None
 
 
 def get_or_create_provider_version(org_name, provider_name, version, key_id):
+    print("Handling provider version")
     version_payload = generate_version_payload(version, key_id)
     r = requests.post(
         url=f"https://app.terraform.io/api/v2/organizations/{org_name}/registry-providers/private/{org_name}/{provider_name}/versions",
@@ -142,22 +150,27 @@ def get_or_create_provider_version(org_name, provider_name, version, key_id):
         return r.json()["data"]
     print("Something bad happened")
     print("Status code", r.status_code)
+    print("Error", r.text)
     return None
 
 
 def upload_sha_sums(provider_details):
+    print("Uploading sha sums")
     dist_files = os.listdir(DIST_FILES)
     links = provider_details["links"]
 
     shasum_file, shasum_sig_file = "", ""
     for file_ in dist_files:
         if file_.endswith("SHA256SUMS"):
+            print(f"Found sha sum file: {file_}")
             shasum_file = file_
         elif file_.endswith("SHA256SUMS.sig"):
+            print(f"Found sha sum sig file: {file_}")
             shasum_sig_file = file_
 
     if not provider_details["attributes"]["shasums-uploaded"]:
-        r = requests.post(
+        print("Sha sum not uploaded. Uploading...")
+        r = requests.put(
             files={'file': open(f"{DIST_FILES}/{shasum_file}", "r")},
             url=links["shasums-upload"],
             timeout=TIMEOUT
@@ -165,10 +178,12 @@ def upload_sha_sums(provider_details):
         if r.status_code != 201:
             print("Something bad happened")
             print("Status code", r.status_code)
+            print("Error", r.text)
             return False
 
     if not provider_details["attributes"]["shasums-sig-uploaded"]:
-        r = requests.post(
+        print("Sha sum sig not uploaded. Uploading...")
+        r = requests.put(
             files={'file': open(f"{DIST_FILES}/{shasum_sig_file}", "r")},
             url=links["shasums-sig-upload"],
             timeout=TIMEOUT
@@ -176,16 +191,20 @@ def upload_sha_sums(provider_details):
         if r.status_code != 201:
             print("Something bad happened")
             print("Status code", r.status_code)
+            print("Error", r.text)
             return False
 
+    print("Sha sum files upload success")
     return True
 
 
 def create_and_upload_platform_files(org_name, provider_name, version):
+    print("Create and upload platform files")
     dist_files = os.listdir(DIST_FILES)
     for file_ in dist_files:
         if not file_.endswith(".zip"):
             continue
+        print(f"Processing {file_}")
         platform = generate_platform_payload(file_)
         r = requests.post(
             url=f"https://app.terraform.io/api/v2/organizations/{org_name}/registry-providers/private/{org_name}/{provider_name}/versions/{version}/platforms",
@@ -204,12 +223,16 @@ def create_and_upload_platform_files(org_name, provider_name, version):
         if not r.json()["data"]["attributes"]["provider-binary-uploaded"]:
             print("Binary not yet uploaded! Uploading...")
             links = r.json()["data"]["links"]
-            subprocess.run(["curl", "-T", f"./dist/{file_}", links['provider-binary-upload']])
-            # resp = requests.post(
-            #     files={'file': open(f"./dist/{file_}", "rb")},
-            #     url=links["provider-binary-upload"],
-            #     timeout=TIMEOUT
-            # )
+            # subprocess.run(["curl", "-T", f"./dist/{file_}", links['provider-binary-upload']])
+            r = requests.put(
+                files={'file': open(f"{DIST_FILES}/{file_}", "rb")},
+                url=links["provider-binary-upload"],
+                timeout=TIMEOUT
+            )
+            if r.status_code != 201:
+                print("Something bad happened")
+                print("Status code", r.status_code)
+                print("Error", r.text)
         else:
             print("Binary already uploaded! Moving on...")
 
