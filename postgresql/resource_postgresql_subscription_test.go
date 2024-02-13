@@ -224,6 +224,10 @@ func TestAccPostgresqlSubscription_Basic(t *testing.T) {
 						"postgresql_subscription.test_sub",
 						"create_slot",
 						"false"),
+					resource.TestCheckResourceAttr(
+						"postgresql_subscription.test_sub",
+						"copy_data",
+						"true"),
 				),
 			},
 		},
@@ -309,6 +313,94 @@ func TestAccPostgresqlSubscription_CustomSlotName(t *testing.T) {
 						"postgresql_subscription.test_sub",
 						"slot_name",
 						"custom_slot_name"),
+				),
+			},
+		},
+	},
+	)
+	coolDown()
+}
+
+func TestAccPostgresqlSubscription_CopyDataDisabled(t *testing.T) {
+	skipIfNotAcc(t)
+
+	dbSuffixPub, teardownPub := setupTestDatabase(t, true, true)
+	dbSuffixSub, teardownSub := setupTestDatabase(t, true, true)
+
+	defer teardownPub()
+	defer teardownSub()
+	testTables := []string{"test_schema.test_table_1"}
+	createTestTables(t, dbSuffixPub, testTables, "")
+	createTestTables(t, dbSuffixSub, testTables, "")
+
+	dbNamePub, _ := getTestDBNames(dbSuffixPub)
+	dbNameSub, _ := getTestDBNames(dbSuffixSub)
+
+	conninfo := getConnInfo(t, dbNamePub)
+
+	subName := "subscription"
+	testAccPostgresqlSubscriptionDatabaseConfig := fmt.Sprintf(`
+	resource "postgresql_publication" "test_pub" {
+		name     	= "test_publication"
+		database	= "%s"
+		tables		= ["test_schema.test_table_1"]
+	}
+	resource "postgresql_replication_slot" "test_replication_slot" {
+		name		= "%s"
+		database	= "%s"
+		plugin		= "pgoutput"
+	}
+	resource "postgresql_subscription" "test_sub" {
+		name     		= postgresql_replication_slot.test_replication_slot.name
+		database 		= "%s"
+		conninfo 		= "%s"
+		publications	= [ postgresql_publication.test_pub.name ]
+		create_slot		= false
+		copy_data		= false
+	}
+	`, dbNamePub, subName, dbNamePub, dbNameSub, conninfo)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testSuperuserPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckPostgresqlSubscriptionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccPostgresqlSubscriptionDatabaseConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPostgresqlSubscriptionExists(
+						"postgresql_subscription.test_sub"),
+					resource.TestCheckResourceAttr(
+						"postgresql_subscription.test_sub",
+						"name",
+						subName),
+					resource.TestCheckResourceAttr(
+						"postgresql_subscription.test_sub",
+						"database",
+						dbNameSub),
+					resource.TestCheckResourceAttr(
+						"postgresql_subscription.test_sub",
+						"conninfo",
+						conninfo),
+					resource.TestCheckResourceAttr(
+						"postgresql_subscription.test_sub",
+						fmt.Sprintf("%s.#", "publications"),
+						"1"),
+					resource.TestCheckResourceAttr(
+						"postgresql_subscription.test_sub",
+						fmt.Sprintf("%s.0", "publications"),
+						"test_publication"),
+					resource.TestCheckResourceAttr(
+						"postgresql_subscription.test_sub",
+						"create_slot",
+						"false"),
+					resource.TestCheckResourceAttr(
+						"postgresql_subscription.test_sub",
+						"copy_data",
+						"false"),
 				),
 			},
 		},
