@@ -224,6 +224,10 @@ func TestAccPostgresqlSubscription_Basic(t *testing.T) {
 						"postgresql_subscription.test_sub",
 						"create_slot",
 						"false"),
+					resource.TestCheckResourceAttr(
+						"postgresql_subscription.test_sub",
+						"copy_data",
+						"true"),
 				),
 			},
 		},
@@ -325,6 +329,9 @@ func TestAccPostgresqlSubscription_CopyDataDisabled(t *testing.T) {
 
 	defer teardownPub()
 	defer teardownSub()
+	testTables := []string{"test_schema.test_table_1"}
+	createTestTables(t, dbSuffixPub, testTables, "")
+	createTestTables(t, dbSuffixSub, testTables, "")
 
 	dbNamePub, _ := getTestDBNames(dbSuffixPub)
 	dbNameSub, _ := getTestDBNames(dbSuffixSub)
@@ -334,18 +341,25 @@ func TestAccPostgresqlSubscription_CopyDataDisabled(t *testing.T) {
 	subName := "subscription"
 	testAccPostgresqlSubscriptionDatabaseConfig := fmt.Sprintf(`
 	resource "postgresql_publication" "test_pub" {
-		name		= "test_publication"
+		name     	= "test_publication"
 		database	= "%s"
+		tables		= ["test_schema.test_table_1"]
 	}
-
+	resource "postgresql_replication_slot" "test_replication_slot" {
+		name		= "%s"
+		database	= "%s"
+		plugin		= "pgoutput"
+	}
 	resource "postgresql_subscription" "test_sub" {
-		name     		= "%s"
+		name     		= postgresql_replication_slot.test_replication_slot.name
 		database 		= "%s"
 		conninfo 		= "%s"
 		publications	= [ postgresql_publication.test_pub.name ]
+		create_slot		= false
 		copy_data		= false
 	}
-	`, dbNamePub, subName, dbNameSub, conninfo)
+	`, dbNamePub, subName, dbNamePub, dbNameSub, conninfo)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -379,6 +393,10 @@ func TestAccPostgresqlSubscription_CopyDataDisabled(t *testing.T) {
 						"postgresql_subscription.test_sub",
 						fmt.Sprintf("%s.0", "publications"),
 						"test_publication"),
+					resource.TestCheckResourceAttr(
+						"postgresql_subscription.test_sub",
+						"create_slot",
+						"false"),
 					resource.TestCheckResourceAttr(
 						"postgresql_subscription.test_sub",
 						"copy_data",
