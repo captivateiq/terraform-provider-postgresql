@@ -322,7 +322,7 @@ func getOptionalParameters(d *schema.ResourceData) string {
 	returnValue := ""
 
 	createSlot, okCreate := d.GetOkExists("create_slot") //nolint:staticcheck
-	copyData, okCopy := d.GetOkExists("copy_data")
+	copyData, okCopy := d.GetOkExists("copy_data")       //nolint:staticcheck
 	slotName, okName := d.GetOk("slot_name")
 
 	if !okCreate && !okName && !okCopy {
