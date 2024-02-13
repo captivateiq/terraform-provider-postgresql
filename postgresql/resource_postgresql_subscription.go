@@ -56,6 +56,13 @@ func resourcePostgreSQLSubscription() *schema.Resource {
 				Default:     true,
 				Description: "Specifies whether the command should create the replication slot on the publisher",
 			},
+			"copy_data": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				ForceNew:    true,
+				Default:     true,
+				Description: "Specifies whether to copy pre-existing data in the publications that are being subscribed to when the replication starts. The default is true.",
+			},
 			"slot_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -170,6 +177,10 @@ func resourcePostgreSQLSubscriptionReadImpl(db *DBConnection, d *schema.Resource
 	_, okSlotName := d.GetOk("slot_name")
 	if okSlotName {
 		d.Set("slot_name", slotName)
+	}
+	copyData, okCopy := d.GetOkExists("copy_data") //nolint: staticcheck
+	if okCopy {
+		d.Set("copy_data", copyData.(bool))
 	}
 
 	return nil
@@ -311,9 +322,10 @@ func getOptionalParameters(d *schema.ResourceData) string {
 	returnValue := ""
 
 	createSlot, okCreate := d.GetOkExists("create_slot") //nolint:staticcheck
+	copyData, okCopy := d.GetOkExists("copy_data")
 	slotName, okName := d.GetOk("slot_name")
 
-	if !okCreate && !okName {
+	if !okCreate && !okName && !okCopy {
 		// use default behavior, no WITH statement
 		return ""
 	}
@@ -324,6 +336,9 @@ func getOptionalParameters(d *schema.ResourceData) string {
 	}
 	if okName {
 		params = append(params, fmt.Sprintf("%s = %s", "slot_name", pq.QuoteLiteral(slotName.(string))))
+	}
+	if okCopy {
+		params = append(params, fmt.Sprintf("%s = %t", "copy_data", copyData.(bool)))
 	}
 
 	returnValue = fmt.Sprintf(parameterSQLTemplate, strings.Join(params, ", "))
